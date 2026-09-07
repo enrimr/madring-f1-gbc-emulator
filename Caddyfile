@@ -1,0 +1,8 @@
+:{$PORT} {
+	root * /srv
+	encode gzip
+	# Ficheros reales (roms, index.json...) se sirven tal cual;
+	# cualquier otra ruta (/madring, /loquesea) cae en index.html
+	try_files {path} /index.html
+	file_server
+}
