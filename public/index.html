@@ -151,6 +151,19 @@
   </footer>
 
   <script>
+    // Analytics (Umami Cloud). Sin ID, el tracking queda desactivado.
+    const UMAMI_WEBSITE_ID = "";
+    if (UMAMI_WEBSITE_ID) {
+      const u = document.createElement("script");
+      u.defer = true;
+      u.src = "https://cloud.umami.is/script.js";
+      u.dataset.websiteId = UMAMI_WEBSITE_ID;
+      document.head.appendChild(u);
+    }
+    function track(event, data) {
+      if (window.umami) umami.track(event, data);
+    }
+
     const romName = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ""));
     const valid = /^[a-zA-Z0-9._-]+$/.test(romName);
 
@@ -207,6 +220,16 @@
       window.EJS_startOnLoaded = true;
       window.EJS_backgroundColor = "#161a22";
       window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+      // Partidas y tiempo de juego: un evento al arrancar y un "latido"
+      // por cada minuto jugado con la pestaña visible (minutos = nº de eventos)
+      window.EJS_onGameStart = () => {
+        track("game-start", { game: name });
+        if (!window._playTimer) {
+          window._playTimer = setInterval(() => {
+            if (!document.hidden) track("minute-played", { game: name });
+          }, 60000);
+        }
+      };
       const s = document.createElement("script");
       s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
       document.body.appendChild(s);
