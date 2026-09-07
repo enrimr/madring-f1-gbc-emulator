@@ -46,6 +46,26 @@
       color: var(--muted);
       letter-spacing: 0.08em;
     }
+    header { position: relative; }
+    #share-btn {
+      display: none;
+      position: absolute;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: 1px solid #232833;
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.8rem;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    #share-btn:hover { border-color: var(--accent); }
     main {
       flex: 1;
       width: 100%;
@@ -127,6 +147,8 @@
     footer a { color: var(--muted); }
     @media (max-width: 600px) {
       main { padding: 0.5rem; }
+      header { flex-wrap: wrap; padding: 0.8rem 1rem; }
+      #share-btn { position: static; transform: none; }
       #game-shell { padding: 4px; border-radius: 6px; }
       footer .keys { display: none; }
     }
@@ -136,6 +158,7 @@
   <header>
     <h1><a href="/"><span class="dot">&#9673;</span> GBC Arcade</a></h1>
     <span class="sub" id="subtitle">Game Boy Color &middot; online</span>
+    <button id="share-btn" type="button" title="Compartir este juego">&#8599; Compartir</button>
   </header>
   <main>
     <div id="menu">
@@ -210,6 +233,25 @@
       document.getElementById("subtitle").textContent = prettyName(name);
       document.getElementById("keys-help").style.display = "inline";
       show("game-shell");
+
+      const shareBtn = document.getElementById("share-btn");
+      shareBtn.style.display = "block";
+      shareBtn.addEventListener("click", async () => {
+        track("share", { game: name });
+        const shareData = {
+          title: prettyName(name) + " — GBC Arcade",
+          text: "Juega a " + prettyName(name) + " en tu navegador:",
+          url: location.href,
+        };
+        if (navigator.share) {
+          try { await navigator.share(shareData); } catch { /* cancelado */ }
+        } else {
+          await navigator.clipboard.writeText(location.href);
+          const original = shareBtn.innerHTML;
+          shareBtn.textContent = "¡Enlace copiado!";
+          setTimeout(() => { shareBtn.innerHTML = original; }, 2000);
+        }
+      });
 
       window.EJS_player = "#game";
       window.EJS_core = "gambatte"; // core Game Boy / Game Boy Color
