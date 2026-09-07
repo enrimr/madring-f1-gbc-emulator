@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Madring GP — Game Boy Color</title>
+  <meta name="description" content="Madring GP: juega online a este juego de F1 para Game Boy Color." />
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --panel: #161a22;
+      --accent: #e10600;
+      --text: #e8e6e3;
+      --muted: #8a8f98;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      width: 100%;
+      padding: 1.1rem 1.5rem;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid #232833;
+    }
+    header h1 {
+      font-size: 1.15rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    header h1 .flag { color: var(--accent); }
+    header .sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+    #game-shell {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid #232833;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+    #game {
+      width: 100%;
+      aspect-ratio: 10 / 9; /* GBC screen 160x144 */
+      max-height: 78vh;
+    }
+    footer {
+      width: 100%;
+      padding: 0.9rem 1.5rem;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      border-top: 1px solid #232833;
+    }
+    footer kbd {
+      background: #232833;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: inherit;
+      color: var(--text);
+    }
+    @media (max-width: 600px) {
+      main { padding: 0.5rem; }
+      #game-shell { padding: 4px; border-radius: 6px; }
+      footer .keys { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="flag">&#9873;</span> Madring GP</h1>
+    <span class="sub">Game Boy Color &middot; online</span>
+  </header>
+  <main>
+    <div id="game-shell">
+      <div id="game"></div>
+    </div>
+  </main>
+  <footer>
+    <span class="keys">Teclado: <kbd>&#8592;&#8593;&#8595;&#8594;</kbd> cruceta &middot; <kbd>Z</kbd> A &middot; <kbd>X</kbd> B &middot; <kbd>Enter</kbd> Start &middot; <kbd>Shift</kbd> Select &middot; </span>
+    emulación por <a href="https://emulatorjs.org" style="color: var(--muted);">EmulatorJS</a>
+  </footer>
+
+  <script>
+    window.EJS_player = "#game";
+    window.EJS_core = "gambatte";        // core Game Boy / Game Boy Color
+    window.EJS_gameUrl = "rom/madringgp.gbc";
+    window.EJS_gameName = "Madring GP";
+    window.EJS_language = "es-ES";
+    window.EJS_color = "#e10600";
+    window.EJS_startOnLoaded = true;
+    window.EJS_backgroundColor = "#161a22";
+    window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+  </script>
+  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+</body>
+</html>
