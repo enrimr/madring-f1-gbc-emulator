@@ -187,6 +187,30 @@
       if (window.umami) umami.track(event, data);
     }
 
+    // Diagnóstico: con ?debug=1 se muestra un log en pantalla; los errores
+    // JS se envían siempre a Umami (evento js-error) para poder investigarlos
+    const DEBUG = new URLSearchParams(location.search).has("debug");
+    function dbg(msg) {
+      if (!DEBUG) return;
+      let el = document.getElementById("dbg");
+      if (!el) {
+        el = document.createElement("pre");
+        el.id = "dbg";
+        el.style.cssText = "position:fixed;bottom:0;left:0;right:0;max-height:35vh;overflow:auto;" +
+          "background:rgba(0,0,0,.85);color:#0f0;font-size:11px;padding:6px;z-index:9999;margin:0;white-space:pre-wrap";
+        document.body.appendChild(el);
+      }
+      el.textContent += "[" + new Date().toISOString().slice(11, 19) + "] " + msg + "\n";
+    }
+    window.addEventListener("error", (e) => {
+      dbg("ERROR: " + e.message + " @ " + (e.filename || "?") + ":" + (e.lineno || "?"));
+      track("js-error", { msg: String(e.message).slice(0, 120), ua: navigator.userAgent.slice(0, 60) });
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      dbg("PROMESA RECHAZADA: " + e.reason);
+      track("js-error", { msg: ("rejection: " + e.reason).slice(0, 120), ua: navigator.userAgent.slice(0, 60) });
+    });
+
     // iOS (Safari y Chrome usan WebKit): un leak del compositor mata la
     // pestaña tras unos minutos de juego (EmulatorJS#1220). Mitigación:
     // guardar el estado en IndexedDB y recargar antes de que ocurra.
@@ -253,11 +277,21 @@
     }
 
     async function startGame(name) {
+      // Descargamos la ROM nosotros y se la pasamos a EmulatorJS como blob:
+      // su descargador interno falla en Chrome de iOS (EmulatorJS#679)
       const romUrl = "/roms/" + encodeURIComponent(name) + ".gbc";
-      const head = await fetch(romUrl, { method: "HEAD" });
-      if (!head.ok) {
+      let romBlobUrl;
+      dbg("descargando ROM: " + romUrl);
+      try {
+        const resp = await fetch(romUrl);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const blob = await resp.blob();
+        dbg("ROM descargada: " + blob.size + " bytes");
+        romBlobUrl = URL.createObjectURL(blob);
+      } catch (err) {
+        dbg("fallo descargando ROM: " + err);
         const msg = document.getElementById("message");
-        msg.innerHTML = "No existe ninguna ROM llamada <strong>" + name.replace(/[&<>]/g, "") +
+        msg.innerHTML = "No se pudo cargar la ROM <strong>" + name.replace(/[&<>]/g, "") +
           "</strong>.<br><a href=\"/\">&#8592; Volver al men&uacute;</a>";
         show("message");
         return;
@@ -288,7 +322,7 @@
 
       window.EJS_player = "#game";
       window.EJS_core = "gambatte"; // core Game Boy / Game Boy Color
-      window.EJS_gameUrl = romUrl;
+      window.EJS_gameUrl = romBlobUrl;
       window.EJS_gameName = prettyName(name);
       window.EJS_language = "es-ES";
       window.EJS_color = "#e10600";
@@ -314,6 +348,7 @@
       // Partidas y tiempo de juego: un evento al arrancar y un "latido"
       // por cada minuto jugado con la pestaña visible (minutos = nº de eventos)
       window.EJS_onGameStart = () => {
+        dbg("EJS_onGameStart (emulador listo)");
         if (!resuming) track("game-start", { game: name });
         if (!window._playTimer) {
           window._playTimer = setInterval(() => {
@@ -350,7 +385,13 @@
       }
       const s = document.createElement("script");
       s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
+      s.onload = () => dbg("loader.js cargado");
+      s.onerror = () => {
+        dbg("ERROR cargando loader.js del CDN");
+        track("js-error", { msg: "loader.js failed", ua: navigator.userAgent.slice(0, 60) });
+      };
       document.body.appendChild(s);
+      dbg("cargando loader.js del CDN…");
     }
 
     if (!romName) showMenu();
