@@ -1,7 +1,18 @@
 # GBC Arcade — emulador Game Boy Color web
 
 Web genérica que ejecuta ROMs de Game Boy Color en el navegador usando
-[EmulatorJS](https://emulatorjs.org) (core Gambatte, cargado desde su CDN).
+[WasmBoy](https://github.com/torch2424/wasmBoy) (emulador GB/GBC en
+WebAssembly, cargado desde unpkg). Antes usaba EmulatorJS, pero su capa de
+red/arranque fallaba en Chrome de iOS; con WasmBoy controlamos nosotros la
+descarga de la ROM, el canvas, los controles táctiles y el autoguardado
+(reanudación automática si WebKit mata la pestaña).
+
+Gotchas de WasmBoy aprendidos a base de depurar:
+- `setJoypadState` espera claves EN MAYÚSCULAS (`UP`, `A`, `START`...); el
+  wiki las documenta en minúsculas y en minúsculas no funciona.
+- `play()`/`loadROM()` re-activan el joypad por defecto (responsive-gamepad),
+  que sobrescribe `setJoypadState` cada frame: hay que llamar a
+  `disableDefaultJoypad()` DESPUÉS de cada `play()`.
 
 ## Rutas
 
