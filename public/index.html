@@ -33,6 +33,7 @@
       justify-content: center;
       gap: 0.75rem;
       border-bottom: 1px solid #232833;
+      position: relative;
     }
     header h1 {
       font-size: 1.15rem;
@@ -46,7 +47,6 @@
       color: var(--muted);
       letter-spacing: 0.08em;
     }
-    header { position: relative; }
     #share-btn {
       display: none;
       position: absolute;
@@ -85,10 +85,85 @@
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
       display: none;
     }
-    #game {
+    #screen-wrap {
       width: 100%;
       aspect-ratio: 10 / 9; /* pantalla GBC 160x144 */
-      max-height: 78vh;
+      max-height: 70vh;
+      display: flex;
+      justify-content: center;
+      background: #000;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    canvas#screen {
+      height: 100%;
+      aspect-ratio: 10 / 9;
+      image-rendering: pixelated;
+    }
+    #loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    /* Controles táctiles (solo pantallas táctiles) */
+    #touch-controls {
+      display: none;
+      width: 100%;
+      padding: 1rem 0.5rem 0.4rem;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    @media (pointer: coarse) {
+      #touch-controls.active { display: flex; flex-direction: column; gap: 0.9rem; }
+    }
+    #tc-main { display: flex; justify-content: space-between; align-items: center; }
+    .tc-btn {
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      background: #1d222d;
+      border: 1px solid #2c3342;
+      color: var(--muted);
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tc-btn.pressed { background: var(--accent); border-color: var(--accent); color: #fff; }
+    #dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(3, 52px);
+    }
+    #dpad .tc-btn { font-size: 1.1rem; border-radius: 8px; }
+    #dpad .up    { grid-area: 1 / 2; }
+    #dpad .left  { grid-area: 2 / 1; }
+    #dpad .mid   { grid-area: 2 / 2; background: #1d222d; border: 1px solid #2c3342; }
+    #dpad .right { grid-area: 2 / 3; }
+    #dpad .down  { grid-area: 3 / 2; }
+    #ab { display: flex; gap: 1rem; align-items: center; }
+    #ab .tc-btn {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      font-size: 1.05rem;
+      letter-spacing: 0;
+    }
+    #ab .a { margin-bottom: 1.6rem; }
+    #tc-meta { display: flex; justify-content: center; gap: 1.2rem; }
+    #tc-meta .tc-btn {
+      border-radius: 999px;
+      padding: 0.5rem 1.4rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
     }
     /* Menú de ROMs */
     #menu { width: 100%; max-width: 480px; display: none; }
@@ -165,12 +240,36 @@
       <h2>Elige un cartucho</h2>
       <ul id="rom-list"></ul>
     </div>
-    <div id="game-shell"><div id="game"></div></div>
+    <div id="game-shell">
+      <div id="screen-wrap">
+        <canvas id="screen" width="160" height="144"></canvas>
+        <div id="loading">Cargando&hellip;</div>
+      </div>
+      <div id="touch-controls">
+        <div id="tc-main">
+          <div id="dpad">
+            <button class="tc-btn up" data-btn="up">&#9650;</button>
+            <button class="tc-btn left" data-btn="left">&#9664;</button>
+            <div class="mid"></div>
+            <button class="tc-btn right" data-btn="right">&#9654;</button>
+            <button class="tc-btn down" data-btn="down">&#9660;</button>
+          </div>
+          <div id="ab">
+            <button class="tc-btn b" data-btn="b">B</button>
+            <button class="tc-btn a" data-btn="a">A</button>
+          </div>
+        </div>
+        <div id="tc-meta">
+          <button class="tc-btn" data-btn="select">Select</button>
+          <button class="tc-btn" data-btn="start">Start</button>
+        </div>
+      </div>
+    </div>
     <p id="message"></p>
   </main>
   <footer>
     <span class="keys" id="keys-help" style="display:none">Teclado: <kbd>&#8592;&#8593;&#8595;&#8594;</kbd> cruceta &middot; <kbd>Z</kbd> A &middot; <kbd>X</kbd> B &middot; <kbd>Enter</kbd> Start &middot; <kbd>Shift</kbd> Select &middot; </span>
-    emulación por <a href="https://emulatorjs.org">EmulatorJS</a>
+    emulación por <a href="https://github.com/torch2424/wasmBoy">WasmBoy</a>
   </footer>
 
   <script>
@@ -197,7 +296,8 @@
         el = document.createElement("pre");
         el.id = "dbg";
         el.style.cssText = "position:fixed;bottom:0;left:0;right:0;max-height:35vh;overflow:auto;" +
-          "background:rgba(0,0,0,.85);color:#0f0;font-size:11px;padding:6px;z-index:9999;margin:0;white-space:pre-wrap";
+          "background:rgba(0,0,0,.85);color:#0f0;font-size:11px;padding:6px;z-index:9999;margin:0;" +
+          "white-space:pre-wrap;pointer-events:none";
         document.body.appendChild(el);
       }
       el.textContent += "[" + new Date().toISOString().slice(11, 19) + "] " + msg + "\n";
@@ -210,39 +310,6 @@
       dbg("PROMESA RECHAZADA: " + e.reason);
       track("js-error", { msg: ("rejection: " + e.reason).slice(0, 120), ua: navigator.userAgent.slice(0, 60) });
     });
-
-    // iOS (Safari y Chrome usan WebKit): un leak del compositor mata la
-    // pestaña tras unos minutos de juego (EmulatorJS#1220). Mitigación:
-    // guardar el estado en IndexedDB y recargar antes de que ocurra.
-    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    const CHECKPOINT_MS = 150000;
-
-    function idbStates() {
-      return new Promise((res, rej) => {
-        const r = indexedDB.open("gbc-arcade", 1);
-        r.onupgradeneeded = () => r.result.createObjectStore("states");
-        r.onsuccess = () => res(r.result);
-        r.onerror = () => rej(r.error);
-      });
-    }
-    async function saveCheckpoint(key, bytes) {
-      const db = await idbStates();
-      await new Promise((res, rej) => {
-        const tx = db.transaction("states", "readwrite");
-        tx.objectStore("states").put(bytes, key);
-        tx.oncomplete = res;
-        tx.onerror = () => rej(tx.error);
-      });
-    }
-    async function loadCheckpoint(key) {
-      const db = await idbStates();
-      return new Promise((res, rej) => {
-        const rq = db.transaction("states").objectStore("states").get(key);
-        rq.onsuccess = () => res(rq.result);
-        rq.onerror = () => rej(rq.error);
-      });
-    }
 
     const romName = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ""));
     const valid = /^[a-zA-Z0-9._-]+$/.test(romName);
@@ -276,31 +343,32 @@
       }
     }
 
+    function fail(name, detail) {
+      dbg("FALLO: " + detail);
+      document.getElementById("game-shell").style.display = "none";
+      const msg = document.getElementById("message");
+      msg.innerHTML = "No se pudo cargar <strong>" + name.replace(/[&<>]/g, "") +
+        "</strong>.<br><a href=\"/\">&#8592; Volver al men&uacute;</a>";
+      show("message");
+    }
+
+    function loadScript(src) {
+      return new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = res;
+        s.onerror = () => rej(new Error("no se pudo cargar " + src));
+        document.body.appendChild(s);
+      });
+    }
+
     async function startGame(name) {
-      // Descargamos la ROM nosotros y se la pasamos a EmulatorJS como blob:
-      // su descargador interno falla en Chrome de iOS (EmulatorJS#679)
-      const romUrl = "/roms/" + encodeURIComponent(name) + ".gbc";
-      let romBlobUrl;
-      dbg("descargando ROM: " + romUrl);
-      try {
-        const resp = await fetch(romUrl);
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-        const blob = await resp.blob();
-        dbg("ROM descargada: " + blob.size + " bytes");
-        romBlobUrl = URL.createObjectURL(blob);
-      } catch (err) {
-        dbg("fallo descargando ROM: " + err);
-        const msg = document.getElementById("message");
-        msg.innerHTML = "No se pudo cargar la ROM <strong>" + name.replace(/[&<>]/g, "") +
-          "</strong>.<br><a href=\"/\">&#8592; Volver al men&uacute;</a>";
-        show("message");
-        return;
-      }
       document.title = prettyName(name) + " — GBC Arcade";
       document.getElementById("subtitle").textContent = prettyName(name);
       document.getElementById("keys-help").style.display = "inline";
       show("game-shell");
 
+      // Botón de compartir
       const shareBtn = document.getElementById("share-btn");
       shareBtn.style.display = "block";
       shareBtn.addEventListener("click", async () => {
@@ -320,78 +388,151 @@
         }
       });
 
-      window.EJS_player = "#game";
-      window.EJS_core = "gambatte"; // core Game Boy / Game Boy Color
-      window.EJS_gameUrl = romBlobUrl;
-      window.EJS_gameName = prettyName(name);
-      window.EJS_language = "es-ES";
-      window.EJS_color = "#e10600";
-      // iOS exige un gesto para arrancar (sin él: pausa o lienzo en blanco),
-      // así que ahí mostramos el botón Play de EmulatorJS. Resto: autoarranque.
-      window.EJS_startOnLoaded = !isIOS;
-      window.EJS_backgroundColor = "#161a22";
-      window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+      // Descarga de la ROM controlada por nosotros (fetch estándar)
+      const romUrl = "/roms/" + encodeURIComponent(name) + ".gbc";
+      let romBytes;
+      dbg("descargando ROM: " + romUrl);
+      try {
+        const resp = await fetch(romUrl);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        romBytes = new Uint8Array(await resp.arrayBuffer());
+        dbg("ROM descargada: " + romBytes.length + " bytes");
+      } catch (err) {
+        fail(name, "descarga ROM: " + err);
+        return;
+      }
 
-      // Si venimos de un reinicio preventivo o de un crash (iOS), restaura
-      const resuming = sessionStorage.getItem("ios-resume") === name;
-      if (resuming) {
-        sessionStorage.removeItem("ios-resume");
+      // Carga del emulador (WasmBoy, UMD desde unpkg)
+      try {
+        dbg("cargando WasmBoy…");
+        await loadScript("https://unpkg.com/wasmboy@0.7.1/dist/wasmboy.wasm.umd.js");
+      } catch (err) {
+        fail(name, String(err));
+        track("js-error", { msg: "wasmboy load failed", ua: navigator.userAgent.slice(0, 60) });
+        return;
+      }
+      const WB = window.WasmBoy.WasmBoy || window.WasmBoy;
+      dbg("WasmBoy cargado");
+
+      const canvas = document.getElementById("screen");
+      try {
+        await WB.config({
+          useGbcWhenOptional: true,
+          isAudioEnabled: true,
+          audioBatchProcessing: true,
+          audioAccumulateSamples: true,
+          tileRendering: true,
+          tileCaching: true,
+          gameboyFPSCap: 60,
+        }, canvas);
+        dbg("configurado");
+        await WB.loadROM(romBytes, { fileName: name + ".gbc" });
+        dbg("ROM cargada en el core");
+
+        // Reanudación: si hay un guardado de hace <10 min (crash o recarga),
+        // se restaura la partida automáticamente
         try {
-          const bytes = await loadCheckpoint(name);
-          if (bytes && bytes.length) {
-            window.EJS_loadStateURL = URL.createObjectURL(new Blob([bytes]));
-            document.getElementById("subtitle").textContent = prettyName(name) + " · partida reanudada";
+          const states = await WB.getSaveStates();
+          if (states && states.length) {
+            const latest = states.reduce((a, b) => (new Date(a.date) > new Date(b.date) ? a : b));
+            if (Date.now() - new Date(latest.date).getTime() < 10 * 60 * 1000) {
+              await WB.loadState(latest);
+              document.getElementById("subtitle").textContent = prettyName(name) + " · partida reanudada";
+              dbg("partida reanudada (guardado de " + latest.date + ")");
+            }
           }
-        } catch { /* sin checkpoint, arranque normal */ }
+        } catch (e) { dbg("sin reanudación: " + e); }
+
+        await WB.play();
+        // Después de play(): initialize() re-activa el joypad por defecto
+        // (responsive-gamepad), que pisaría nuestro setJoypadState cada frame
+        await WB.disableDefaultJoypad();
+        dbg("jugando");
+        document.getElementById("loading").style.display = "none";
+        track("game-start", { game: name });
+      } catch (err) {
+        fail(name, "arranque emulador: " + err);
+        track("js-error", { msg: ("wasmboy: " + err).slice(0, 120), ua: navigator.userAgent.slice(0, 60) });
+        return;
       }
 
-      // Partidas y tiempo de juego: un evento al arrancar y un "latido"
-      // por cada minuto jugado con la pestaña visible (minutos = nº de eventos)
-      window.EJS_onGameStart = () => {
-        dbg("EJS_onGameStart (emulador listo)");
-        if (!resuming) track("game-start", { game: name });
-        if (!window._playTimer) {
-          window._playTimer = setInterval(() => {
-            if (!document.hidden) track("minute-played", { game: name });
-          }, 60000);
-        }
-      };
+      // Tiempo de juego: un "latido" por minuto con la pestaña visible
+      setInterval(() => {
+        if (!document.hidden) track("minute-played", { game: name });
+      }, 60000);
 
-      async function saveNow() {
+      // Entrada: teclado + controles táctiles → setJoypadState
+      // ¡Ojo!: setJoypadState espera las claves en MAYÚSCULAS (fuente:
+      // lib/controller/controller.js de WasmBoy; el wiki las documenta mal)
+      const pad = { UP: false, RIGHT: false, DOWN: false, LEFT: false, A: false, B: false, SELECT: false, START: false };
+      function sendPad() { WB.setJoypadState(pad); }
+      const KEYMAP = {
+        ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT",
+        z: "A", Z: "A", x: "B", X: "B", Enter: "START", Shift: "SELECT",
+      };
+      window.addEventListener("keydown", (e) => {
+        const btn = KEYMAP[e.key];
+        if (!btn) return;
+        e.preventDefault();
+        if (!pad[btn]) { pad[btn] = true; sendPad(); }
+        WB.resumeAudioContext();
+      });
+      window.addEventListener("keyup", (e) => {
+        const btn = KEYMAP[e.key];
+        if (!btn) return;
+        e.preventDefault();
+        pad[btn] = false; sendPad();
+      });
+
+      const tc = document.getElementById("touch-controls");
+      if (window.matchMedia("(pointer: coarse)").matches) tc.classList.add("active");
+      tc.querySelectorAll("[data-btn]").forEach((el) => {
+        const btn = el.dataset.btn.toUpperCase();
+        const press = (e) => {
+          e.preventDefault();
+          el.classList.add("pressed");
+          dbg("press " + btn + " (setJoypadState: " + typeof WB.setJoypadState + ")");
+          if (!pad[btn]) { pad[btn] = true; sendPad(); }
+          WB.resumeAudioContext(); // primer toque: activa el sonido (iOS/Android)
+        };
+        const release = (e) => {
+          e.preventDefault();
+          el.classList.remove("pressed");
+          dbg("release " + btn);
+          if (pad[btn]) { pad[btn] = false; sendPad(); }
+        };
+        el.addEventListener("touchstart", press, { passive: false });
+        el.addEventListener("touchend", release, { passive: false });
+        el.addEventListener("touchcancel", release, { passive: false });
+        el.addEventListener("mousedown", press);
+        el.addEventListener("mouseup", release);
+        el.addEventListener("mouseleave", release);
+      });
+      // Cualquier gesto en la página también desbloquea el audio
+      document.addEventListener("pointerdown", () => WB.resumeAudioContext(), { passive: true });
+
+      // Autoguardado cada 60s (y al ocultar la pestaña) para recuperar la
+      // partida si WebKit mata la página (bug del compositor en iOS)
+      let saving = false;
+      async function autoSave() {
+        if (saving || !WB.isPlaying()) return;
+        saving = true;
         try {
-          const st = await Promise.resolve(window.EJS_emulator.gameManager.getState());
-          if (st && st.length) {
-            await saveCheckpoint(name, st);
-            sessionStorage.setItem("ios-resume", name);
-            return true;
+          await WB.saveState();
+          await WB.play();
+          await WB.disableDefaultJoypad(); // play() lo reactiva; ver arriba
+          dbg("autoguardado");
+          // poda: conserva solo los 3 estados más recientes
+          const states = await WB.getSaveStates();
+          if (states && states.length > 3) {
+            states.sort((a, b) => new Date(b.date) - new Date(a.date));
+            for (const old of states.slice(3)) await WB.deleteState(old);
           }
-        } catch { /* API interna no disponible en esta versión */ }
-        return false;
+        } catch (e) { dbg("fallo autoguardado: " + e); }
+        saving = false;
       }
-      function startCheckpointing() {
-        // red de seguridad: guarda cada 30s por si el crash llega antes
-        setInterval(() => { if (!document.hidden) saveNow(); }, 30000);
-        // reinicio controlado antes de que WebKit agote la memoria
-        setTimeout(async function cycle() {
-          if (!document.hidden && await saveNow()) location.reload();
-          else setTimeout(cycle, 15000);
-        }, CHECKPOINT_MS);
-      }
-      if (isIOS) {
-        // el juego solo arranca tras un toque (botón Play), ancla ahí el ciclo
-        document.getElementById("game").addEventListener("touchend", () => {
-          if (!window._cpStarted) { window._cpStarted = true; startCheckpointing(); }
-        }, { passive: true });
-      }
-      const s = document.createElement("script");
-      s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-      s.onload = () => dbg("loader.js cargado");
-      s.onerror = () => {
-        dbg("ERROR cargando loader.js del CDN");
-        track("js-error", { msg: "loader.js failed", ua: navigator.userAgent.slice(0, 60) });
-      };
-      document.body.appendChild(s);
-      dbg("cargando loader.js del CDN…");
+      setInterval(() => { if (!document.hidden) autoSave(); }, 60000);
+      document.addEventListener("visibilitychange", () => { if (document.hidden) autoSave(); });
     }
 
     if (!romName) showMenu();
