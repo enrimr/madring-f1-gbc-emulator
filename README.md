@@ -16,8 +16,9 @@ Historia de emuladores, para no repetir errores:
    arranca sin gesto en iOS (canvas 2D en iPhone, evita el leak de WebKit),
    pad táctil de GB Studio, save states y SRAM en localStorage.
    `emulator.js` es `docs/simple.js` de binjgb adaptado: arranque bajo
-   demanda (`startBinjgb`), claves de almacenamiento por juego y
-   autoguardado cada 60s con reanudación (<10 min).
+   demanda (`startBinjgb`) y claves de almacenamiento por juego. Recargar
+   la página arranca de cero (sin reanudación automática, a propósito);
+   F6/F9 guardan/cargan estado manualmente con teclado.
 
 ## Rutas
 
