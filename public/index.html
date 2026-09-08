@@ -259,7 +259,11 @@
       window.EJS_gameName = prettyName(name);
       window.EJS_language = "es-ES";
       window.EJS_color = "#e10600";
-      window.EJS_startOnLoaded = true;
+      // iOS bloquea el arranque sin gesto del usuario: la pantalla se queda
+      // en negro si autoarrancamos. Ahí mostramos el botón Play de EmulatorJS.
+      const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      window.EJS_startOnLoaded = !isIOS;
       window.EJS_backgroundColor = "#161a22";
       window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
       // Partidas y tiempo de juego: un evento al arrancar y un "latido"

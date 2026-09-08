@@ -13,9 +13,11 @@ Web genérica que ejecuta ROMs de Game Boy Color en el navegador usando
 
 1. Copia el fichero a `public/roms/<nombre>.gbc` (el nombre de la ruta será el
    nombre del fichero sin extensión).
-2. Despliega: `railway up`
+2. Añade el nombre a `public/roms/index.json` (el listado del menú).
+3. Commit y push.
 
-El `Dockerfile` regenera `roms/index.json` (el listado del menú) en cada build.
+(En Railway el `Dockerfile` regenera `index.json` solo; en Vercel se usa el
+fichero commiteado.)
 
 ## Estructura
 
@@ -34,5 +36,5 @@ python3 -m http.server 8080 -d public   # ojo: sin fallback SPA, usa / y el men�
 
 ## Despliegue
 
-Desplegado en Railway. Dominios: `madring.enri.me` y `emulator.enri.me`
-(CNAME → `rn9ctx4d.up.railway.app`).
+Desplegado en Vercel (`vercel.json`: sirve `public/` con fallback SPA).
+El `Dockerfile` + `Caddyfile` siguen sirviendo para Railway u otro host Docker.
