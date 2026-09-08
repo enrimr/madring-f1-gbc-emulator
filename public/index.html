@@ -430,11 +430,7 @@
         await loadScript("/vendor/binjgb/binjgb.js");
         await loadScript("/vendor/binjgb/emulator.js");
         dbg("binjgb cargado, arrancando");
-        const { resumed } = await window.startBinjgb(romBuffer);
-        if (resumed) {
-          document.getElementById("subtitle").textContent = prettyName(name) + " · partida reanudada";
-          dbg("partida reanudada");
-        }
+        await window.startBinjgb(romBuffer);
         dbg("jugando");
         document.getElementById("loading").style.display = "none";
         track("game-start", { game: name });

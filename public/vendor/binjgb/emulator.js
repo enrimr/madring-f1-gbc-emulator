@@ -132,22 +132,13 @@ window.startBinjgb = async function(romBuffer) {
   Emulator.start(await binjgbPromise, romBuffer, extRam);
   emulator.setBuiltinPalette(vm.palIdx);
 
-  // Reanudación tras crash/recarga: restaura si el guardado es reciente
-  let resumed = false;
-  const t = Number(localStorage.getItem(GAME_KEY + '-saveStateTime') || 0);
-  if (t && Date.now() - t < 10 * 60 * 1000) {
-    try { emulator.loadState(); resumed = true; } catch (e) { /* incompatible */ }
-  }
+  // Recargar la página = apagar y encender la consola: sin reanudación
+  // automática (decisión de producto). F6/F9 siguen guardando/cargando
+  // estado manualmente con teclado. Limpia guardados antiguos.
+  localStorage.removeItem(GAME_KEY + '-saveState');
+  localStorage.removeItem(GAME_KEY + '-saveStateTime');
 
-  // Autoguardado (barato: no pausa) cada 60s y al ocultar la pestaña
-  setInterval(() => {
-    if (emulator && !document.hidden) { try { emulator.saveState(); } catch (e) {} }
-  }, 60000);
-  document.addEventListener('visibilitychange', () => {
-    if (emulator && document.hidden) { try { emulator.saveState(); } catch (e) {} }
-  });
-
-  return { resumed };
+  return { resumed: false };
 };
 
 
