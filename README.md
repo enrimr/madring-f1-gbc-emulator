@@ -1,18 +1,23 @@
 # GBC Arcade — emulador Game Boy Color web
 
 Web genérica que ejecuta ROMs de Game Boy Color en el navegador usando
-[WasmBoy](https://github.com/torch2424/wasmBoy) (emulador GB/GBC en
-WebAssembly, cargado desde unpkg). Antes usaba EmulatorJS, pero su capa de
-red/arranque fallaba en Chrome de iOS; con WasmBoy controlamos nosotros la
-descarga de la ROM, el canvas, los controles táctiles y el autoguardado
-(reanudación automática si WebKit mata la pestaña).
+[binjgb](https://github.com/binji/binjgb) (core C→WASM, el mismo que usa
+GB Studio para sus exports web), vendorizado en `public/vendor/binjgb/`.
 
-Gotchas de WasmBoy aprendidos a base de depurar:
-- `setJoypadState` espera claves EN MAYÚSCULAS (`UP`, `A`, `START`...); el
-  wiki las documenta en minúsculas y en minúsculas no funciona.
-- `play()`/`loadROM()` re-activan el joypad por defecto (responsive-gamepad),
-  que sobrescribe `setJoypadState` cada frame: hay que llamar a
-  `disableDefaultJoypad()` DESPUÉS de cada `play()`.
+Historia de emuladores, para no repetir errores:
+1. **EmulatorJS** (core gambatte): preciso, pero su capa de red/arranque
+   falla en Chrome de iOS (#679) y iOS exige un gesto para arrancar.
+2. **WasmBoy**: API JS limpia y autoarranque en iOS, pero su emulación GBC
+   no soporta los trucos del juego (partición de pantalla vía LYC + ventana
+   con WX=167): el fondo del circuito no se renderizaba. Además:
+   `setJoypadState` espera claves EN MAYÚSCULAS y `play()` re-activa el
+   joypad por defecto que pisa el estado manual.
+3. **binjgb** (actual): preciso (renderiza bien los efectos LYC/ventana),
+   arranca sin gesto en iOS (canvas 2D en iPhone, evita el leak de WebKit),
+   pad táctil de GB Studio, save states y SRAM en localStorage.
+   `emulator.js` es `docs/simple.js` de binjgb adaptado: arranque bajo
+   demanda (`startBinjgb`), claves de almacenamiento por juego y
+   autoguardado cada 60s con reanudación (<10 min).
 
 ## Rutas
 
