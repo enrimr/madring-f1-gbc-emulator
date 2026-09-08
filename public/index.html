@@ -187,6 +187,39 @@
       if (window.umami) umami.track(event, data);
     }
 
+    // iOS (Safari y Chrome usan WebKit): un leak del compositor mata la
+    // pestaña tras unos minutos de juego (EmulatorJS#1220). Mitigación:
+    // guardar el estado en IndexedDB y recargar antes de que ocurra.
+    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const CHECKPOINT_MS = 150000;
+
+    function idbStates() {
+      return new Promise((res, rej) => {
+        const r = indexedDB.open("gbc-arcade", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("states");
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+    }
+    async function saveCheckpoint(key, bytes) {
+      const db = await idbStates();
+      await new Promise((res, rej) => {
+        const tx = db.transaction("states", "readwrite");
+        tx.objectStore("states").put(bytes, key);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+    }
+    async function loadCheckpoint(key) {
+      const db = await idbStates();
+      return new Promise((res, rej) => {
+        const rq = db.transaction("states").objectStore("states").get(key);
+        rq.onsuccess = () => res(rq.result);
+        rq.onerror = () => rej(rq.error);
+      });
+    }
+
     const romName = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ""));
     const valid = /^[a-zA-Z0-9._-]+$/.test(romName);
 
@@ -259,23 +292,62 @@
       window.EJS_gameName = prettyName(name);
       window.EJS_language = "es-ES";
       window.EJS_color = "#e10600";
-      // iOS bloquea el arranque sin gesto del usuario: la pantalla se queda
-      // en negro si autoarrancamos. Ahí mostramos el botón Play de EmulatorJS.
-      const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      // iOS exige un gesto para arrancar (sin él: pausa o lienzo en blanco),
+      // así que ahí mostramos el botón Play de EmulatorJS. Resto: autoarranque.
       window.EJS_startOnLoaded = !isIOS;
       window.EJS_backgroundColor = "#161a22";
       window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+
+      // Si venimos de un reinicio preventivo o de un crash (iOS), restaura
+      const resuming = sessionStorage.getItem("ios-resume") === name;
+      if (resuming) {
+        sessionStorage.removeItem("ios-resume");
+        try {
+          const bytes = await loadCheckpoint(name);
+          if (bytes && bytes.length) {
+            window.EJS_loadStateURL = URL.createObjectURL(new Blob([bytes]));
+            document.getElementById("subtitle").textContent = prettyName(name) + " · partida reanudada";
+          }
+        } catch { /* sin checkpoint, arranque normal */ }
+      }
+
       // Partidas y tiempo de juego: un evento al arrancar y un "latido"
       // por cada minuto jugado con la pestaña visible (minutos = nº de eventos)
       window.EJS_onGameStart = () => {
-        track("game-start", { game: name });
+        if (!resuming) track("game-start", { game: name });
         if (!window._playTimer) {
           window._playTimer = setInterval(() => {
             if (!document.hidden) track("minute-played", { game: name });
           }, 60000);
         }
       };
+
+      async function saveNow() {
+        try {
+          const st = await Promise.resolve(window.EJS_emulator.gameManager.getState());
+          if (st && st.length) {
+            await saveCheckpoint(name, st);
+            sessionStorage.setItem("ios-resume", name);
+            return true;
+          }
+        } catch { /* API interna no disponible en esta versión */ }
+        return false;
+      }
+      function startCheckpointing() {
+        // red de seguridad: guarda cada 30s por si el crash llega antes
+        setInterval(() => { if (!document.hidden) saveNow(); }, 30000);
+        // reinicio controlado antes de que WebKit agote la memoria
+        setTimeout(async function cycle() {
+          if (!document.hidden && await saveNow()) location.reload();
+          else setTimeout(cycle, 15000);
+        }, CHECKPOINT_MS);
+      }
+      if (isIOS) {
+        // el juego solo arranca tras un toque (botón Play), ancla ahí el ciclo
+        document.getElementById("game").addEventListener("touchend", () => {
+          if (!window._cpStarted) { window._cpStarted = true; startCheckpointing(); }
+        }, { passive: true });
+      }
       const s = document.createElement("script");
       s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
       document.body.appendChild(s);
